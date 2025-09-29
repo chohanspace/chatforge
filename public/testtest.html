@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Test Page</title>
+</head>
+<body>
+    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; color: #555;">
+        <h1>This is a test page. The chatbot icon should appear in the corner.</h1>
+    </div>
+
+    <!-- ChatForge AI Embed Start -->
+    <script>
+    (function() {
+        // Ensure script runs only once
+        if (document.getElementById('chatforge-trigger')) {
+            return;
+        }
+
+        const API_KEY = 'cfai_49e42f2bc0cf8e2e841dd525688b69de';
+        const APP_URL = 'https://6000-firebase-studio-1756999135420.cluster-ha3ykp7smfgsutjta5qfx7ssnm.cloudworkstations.dev';
+
+        // --- 1. Inject CSS for the trigger and iframe container ---
+        const style = document.createElement('style');
+        style.innerHTML = `
+            #chatforge-trigger, #chatforge-iframe-container {
+                transition: all 0.3s ease-in-out;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            }
+            #chatforge-trigger {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                border: none;
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 9999998;
+                transform: scale(1);
+            }
+            #chatforge-trigger:hover {
+                transform: scale(1.1);
+            }
+            #chatforge-trigger svg {
+                width: 28px;
+                height: 28px;
+                position: absolute;
+                transition: opacity 0.2s, transform 0.2s;
+            }
+            #chatforge-trigger .icon-close {
+                opacity: 0;
+                transform: rotate(-90deg);
+            }
+            #chatforge-iframe-container {
+                position: fixed;
+                bottom: 90px;
+                right: 20px;
+                width: min(calc(100vw - 40px), 380px);
+                height: min(70vh, 600px);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+                border-radius: 16px;
+                overflow: hidden;
+                z-index: 9999999;
+                transform-origin: bottom right;
+                opacity: 0;
+                transform: scale(0.9);
+                pointer-events: none;
+                border: 1px solid #e5e7eb;
+            }
+            #chatforge-iframe-container.open {
+                opacity: 1;
+                transform: scale(1);
+                pointer-events: all;
+            }
+            #chatforge-iframe {
+                width: 100%;
+                height: 100%;
+                border: none;
+            }
+            #chatforge-trigger.open .icon-open {
+                opacity: 0;
+                transform: rotate(90deg);
+            }
+            #chatforge-trigger.open .icon-close {
+                opacity: 1;
+                transform: rotate(0deg);
+            }
+        `;
+        document.head.appendChild(style);
+
+        // --- 2. Create HTML Elements ---
+        const trigger = document.createElement('button');
+        trigger.id = 'chatforge-trigger';
+        trigger.setAttribute('aria-label', 'Open chat');
+        trigger.innerHTML = `
+            <svg class="icon-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <svg class="icon-close" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        `;
+
+        const container = document.createElement('div');
+        container.id = 'chatforge-iframe-container';
+
+        document.body.appendChild(trigger);
+        document.body.appendChild(container);
+
+        // --- 3. Fetch Config & Set Theme ---
+        fetch(`${APP_URL}/api/chat/config/${API_KEY}`)
+          .then(res => res.json())
+          .then(config => {
+            if (config.color) {
+                trigger.style.backgroundColor = config.color;
+            }
+          })
+          .catch(console.error);
+
+        // --- 4. Logic to Toggle Chat ---
+        let isOpen = false;
+        let iframeLoaded = false;
+
+        function createIframe() {
+            if (iframeLoaded) return;
+            iframeLoaded = true;
+            const iframe = document.createElement('iframe');
+            iframe.id = 'chatforge-iframe';
+            iframe.src = `${APP_URL}/bot/api/${API_KEY}`;
+            iframe.setAttribute('allow', 'clipboard-write');
+            container.appendChild(iframe);
+        }
+
+        function toggleChat() {
+          isOpen = !isOpen;
+          trigger.classList.toggle('open');
+          trigger.setAttribute('aria-label', isOpen ? 'Close chat' : 'Open chat');
+          if (isOpen) {
+            createIframe();
+          }
+          container.classList.toggle('open');
+        }
+
+        trigger.addEventListener('click', toggleChat);
+    })();
+    </script>
+    <!-- ChatForge AI Embed End -->
+</body>
+</html>

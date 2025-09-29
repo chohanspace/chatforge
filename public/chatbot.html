@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Test Page</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #007bff;
+        }
+        p {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Welcome to the Chatbot Test Page</h1>
+        <p>This is a simple HTML page designed to test the ChatForge AI chatbot widget.</p>
+        <p>The chatbot trigger button should appear in the bottom-right corner of this page. You can click it to open the chat interface.</p>
+        <p><strong>Instructions:</strong> To make this work, you must replace the placeholder `YOUR_API_KEY_HERE` in the script below with your actual API key from the ChatForge dashboard.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat.</p>
+    </div>
+
+    <!-- CHATFORGE AI EMBED CODE START -->
+    <!-- Replace YOUR_API_KEY_HERE with your actual API key -->
+    <style>
+      #chatforge-trigger {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #007BFF;
+        color: white;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        z-index: 9998;
+        transition: transform 0.2s, opacity 0.3s;
+        border: none;
+      }
+      #chatforge-trigger.hidden {
+        opacity: 0;
+        transform: scale(0.5);
+        pointer-events: none;
+      }
+      #chatforge-iframe-container {
+        position: fixed;
+        bottom: 90px;
+        right: 20px;
+        width: 370px;
+        height: 60vh;
+        max-height: 600px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        overflow: hidden;
+        z-index: 9999;
+        transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        transform-origin: bottom right;
+        border: 1px solid #e0e0e0;
+      }
+      #chatforge-iframe-container.hidden {
+        opacity: 0;
+        transform: scale(0.8);
+        pointer-events: none;
+      }
+      #chatforge-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+    </style>
+    
+    <div id="chatforge-iframe-container" class="hidden">
+      <!-- NOTE: Replace YOUR_API_KEY_HERE with your key -->
+      <iframe id="chatforge-iframe" src="https://chatforge-ai-alpha.web.app/chatbot/YOUR_API_KEY_HERE"></iframe>
+    </div>
+    
+    <button id="chatforge-trigger">
+      <svg id="chatforge-icon-open" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+      <svg id="chatforge-icon-close" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+    
+    <script>
+      (function() {
+        const trigger = document.getElementById('chatforge-trigger');
+        const container = document.getElementById('chatforge-iframe-container');
+        const openIcon = document.getElementById('chatforge-icon-open');
+        const closeIcon = document.getElementById('chatforge-icon-close');
+        let isOpen = false;
+    
+        function toggleChat() {
+          isOpen = !isOpen;
+          if (isOpen) {
+            container.classList.remove('hidden');
+            openIcon.style.display = 'none';
+            closeIcon.style.display = 'block';
+          } else {
+            container.classList.add('hidden');
+            openIcon.style.display = 'block';
+            closeIcon.style.display = 'none';
+          }
+        }
+    
+        trigger.addEventListener('click', toggleChat);
+      })();
+    </script>
+    <!-- CHATFORGE AI EMBED CODE END -->
+
+</body>
+</html>
