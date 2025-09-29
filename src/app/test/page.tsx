@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { useSearchParams } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 const ChatbotEmbed = ({ apiKey }: { apiKey: string }) => {
   if (typeof window === 'undefined') return null;
 
