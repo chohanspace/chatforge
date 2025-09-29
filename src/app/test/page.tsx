@@ -1,15 +1,14 @@
 // src/app/test/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Script from 'next/script';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useSearchParams } from 'next/navigation';
-
-export const dynamic = 'force-dynamic';
+import { Loader2 } from 'lucide-react';
 
 const ChatbotEmbed = ({ apiKey }: { apiKey: string }) => {
   if (typeof window === 'undefined') return null;
@@ -75,7 +74,7 @@ const ChatbotEmbed = ({ apiKey }: { apiKey: string }) => {
 };
 
 
-export default function TestPage() {
+function TestPageContent() {
   const searchParams = useSearchParams();
   const [apiKey, setApiKey] = useState('');
   const [loadedApiKey, setLoadedApiKey] = useState<string | null>(null);
@@ -123,4 +122,17 @@ export default function TestPage() {
       {loadedApiKey && <ChatbotEmbed apiKey={loadedApiKey} />}
     </div>
   );
+}
+
+
+export default function TestPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        }>
+            <TestPageContent />
+        </Suspense>
+    );
 }
