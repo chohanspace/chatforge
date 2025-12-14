@@ -31,13 +31,7 @@ export async function sendOtpEmail(to: string, otp: string) {
     `,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`OTP email sent to ${to}`);
-  } catch (error) {
-    console.error(`Failed to send OTP email to ${to}:`, error);
-    throw new Error('Could not send verification email.');
-  }
+  await transporter.sendMail(mailOptions);
 }
 
 
