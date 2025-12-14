@@ -10,43 +10,50 @@ let clientPromise: Promise<MongoClient>;
 
 // A flag to check if we are in a build process on a platform like Vercel or Cloudflare.
 // The presence of CI=true is a common indicator.
-const IS_BUILD = process.env.CI === 'true';
+const IS_BUILD = process.env.CI === 'true' || process.env.NODE_ENV === 'production';
 
-if (process.env.NODE_ENV === 'development') {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
-  // @ts-ignore
-  if (!global._mongoClientPromise) {
-    if (!MONGODB_URI) {
-      throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
-    }
-    client = new MongoClient(MONGODB_URI, {});
-    // @ts-ignore
-    global._mongoClientPromise = client.connect();
-  }
-  // @ts-ignore
-  clientPromise = global._mongoClientPromise;
-} else {
-  // In production or build environments.
-  if (!MONGODB_URI) {
-    // If the MONGODB_URI is missing, we'll handle this in getDb.
-    // In build, we'll use a mock. At runtime, we'll throw.
-    clientPromise = Promise.reject(new Error('MONGODB_URI is not defined in the environment.'));
+if (!MONGODB_URI) {
+  // If the MONGODB_URI is missing, we need to handle it differently for build vs. runtime.
+  if (IS_BUILD) {
+    // In a build environment (like `next build` on Vercel/Cloudflare), we don't have secrets.
+    // We create a placeholder promise that will never resolve. This allows the build to
+    // inspect code without crashing. The getDb function will handle this case.
+    console.warn("MONGODB_URI not found during build. Using a mock DB object. This is normal for build servers.");
+    clientPromise = new Promise(() => {}); // A promise that never resolves
   } else {
+    // In a local development or runtime environment, the URI is required.
+    throw new Error('Please define the MONGODB_URI environment variable inside .env or your hosting environment.');
+  }
+} else {
+  // If the URI is present, proceed as normal.
+  if (process.env.NODE_ENV === 'development') {
+    // In development mode, use a global variable to preserve the client across HMR.
+    // @ts-ignore
+    if (!global._mongoClientPromise) {
+      client = new MongoClient(MONGODB_URI, {});
+      // @ts-ignore
+      global._mongoClientPromise = client.connect();
+    }
+    // @ts-ignore
+    clientPromise = global._mongoClientPromise;
+  } else {
+    // In production, create a new client.
     client = new MongoClient(MONGODB_URI, {});
     clientPromise = client.connect();
   }
 }
 
 export async function getDb(): Promise<Db> {
-  // If we are in any build process (CI=true or NODE_ENV is not development),
-  // and the MONGODB_URI is not set, we return a mock/proxy.
+  // If we are in any build process and the MONGODB_URI is not set, we return a mock/proxy.
   // This allows Next.js to analyze page data without a real DB connection.
-  if (process.env.NODE_ENV === 'production' && !MONGODB_URI && (IS_BUILD || typeof window === 'undefined')) {
-    console.warn("MONGODB_URI not found during build/prerender. Using a mock DB object. This is normal for build servers.");
+  if (IS_BUILD && !MONGODB_URI) {
     // Return a proxy that will throw an error only if its methods are actually called.
+    // This should not happen during a static build (`next build`) but is a safeguard.
     return new Proxy({} as Db, {
         get(target, prop) {
+            // This error will only be thrown if server-side code *during the build*
+            // tries to perform a database operation (e.g., in getServerSideProps).
+            // For static pages, this part of the code is not reached.
             throw new Error(`Database operation '${String(prop)}' attempted during build without a MONGODB_URI.`);
         }
     });
@@ -61,8 +68,7 @@ export async function getDb(): Promise<Db> {
     const mongoClient = await clientPromise;
     return mongoClient.db(DB_NAME);
   } catch(e) {
-     // If the initial promise was rejected (e.g., no MONGODB_URI in production),
-     // this catch block will handle it and provide a clear runtime error.
+     // If the initial promise was rejected (e.g., bad connection string), this will catch it.
      console.error("Failed to connect to MongoDB:", e);
      throw new Error("Could not connect to the database. Verify the MONGODB_URI is correct and the database is accessible.");
   }
