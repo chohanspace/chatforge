@@ -2,7 +2,6 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  output: 'standalone', // Important for Render.com and other Docker-based hosts
   env: {
     NEXT_PUBLIC_ADMIN_EMAILS: process.env.ADMIN_EMAILS,
   },
