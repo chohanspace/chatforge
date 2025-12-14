@@ -5,13 +5,11 @@ import 'dotenv/config';
 const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME = 'chatforgeai';
 
-// This check is for local development only to provide a clear error message.
-if (!MONGODB_URI && process.env.NODE_ENV === 'development') {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env for local development');
-}
-
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
+
+// Check if we're in a build environment (like Vercel, Netlify, Cloudflare Pages)
+const IS_BUILD = process.env.CI || process.env.VERCEL || process.env.CF_PAGES;
 
 if (process.env.NODE_ENV === 'development') {
   // In development mode, use a global variable so that the value
@@ -19,23 +17,19 @@ if (process.env.NODE_ENV === 'development') {
   // @ts-ignore
   if (!global._mongoClientPromise) {
     if (!MONGODB_URI) {
-        // @ts-ignore
-        global._mongoClientPromise = Promise.reject(new Error('MONGODB_URI is not defined in .env for development.'));
-    } else {
-        client = new MongoClient(MONGODB_URI, {});
-        // @ts-ignore
-        global._mongoClientPromise = client.connect();
+      throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
     }
+    client = new MongoClient(MONGODB_URI, {});
+    // @ts-ignore
+    global._mongoClientPromise = client.connect();
   }
   // @ts-ignore
   clientPromise = global._mongoClientPromise;
 } else {
-  // In production mode, it's best to not use a global variable.
-  // The MONGODB_URI is expected to be set in the deployment environment.
+  // In production or build environments.
   if (!MONGODB_URI) {
-    // We don't throw an error here at the top level for production,
-    // because this file can be loaded during the build process where env vars might not be available.
-    // The getDb function will handle the runtime error.
+    // During the build process, env vars might not be available.
+    // We create a failing promise that will be caught by getDb if called during build.
     clientPromise = Promise.reject(new Error('MONGODB_URI is not defined in the production environment.'));
   } else {
     client = new MongoClient(MONGODB_URI, {});
@@ -44,14 +38,23 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export async function getDb(): Promise<Db> {
-  // This is the critical runtime check.
-  if (!process.env.MONGODB_URI) {
-      throw new Error("MONGODB_URI is not defined at runtime. Please set it in your hosting environment.");
+  // If we are in a build process and the MONGODB_URI is not set,
+  // we return a mock/proxy that will throw an error only if actually used.
+  // This allows Next.js to analyze page data without a real DB connection.
+  if (IS_BUILD && !MONGODB_URI) {
+    console.warn("MONGODB_URI not found during build. Using a mock DB object. This is normal for build servers.");
+    // Return a proxy that will throw an error if any of its methods are called.
+    return new Proxy({} as Db, {
+        get(target, prop) {
+            throw new Error(`Database operation '${String(prop)}' attempted during build without MONGODB_URI.`);
+        }
+    });
+  }
+  
+  // At runtime (or if MONGODB_URI is present during build), connect properly.
+  if (!MONGODB_URI) {
+    throw new Error('MONGODB_URI is not defined at runtime.');
   }
   const mongoClient = await clientPromise;
   return mongoClient.db(DB_NAME);
 }
-
-// Export a module-scoped MongoClient promise. By doing this in a
-// separate module, the client can be shared across functions.
-export { clientPromise };
