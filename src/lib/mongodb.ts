@@ -1,3 +1,4 @@
+
 // src/lib/mongodb.ts
 import { MongoClient, Db } from 'mongodb';
 import 'dotenv/config';
@@ -8,8 +9,9 @@ const DB_NAME = 'chatforgeai';
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
-// Check if we're in a build environment (like Vercel, Netlify, Cloudflare Pages)
-const IS_BUILD = process.env.CI || process.env.VERCEL || process.env.CF_PAGES;
+// A flag to check if we are in a build process on a platform like Vercel or Cloudflare.
+// The presence of CI=true is a common indicator.
+const IS_BUILD = process.env.CI === 'true';
 
 if (process.env.NODE_ENV === 'development') {
   // In development mode, use a global variable so that the value
@@ -28,9 +30,9 @@ if (process.env.NODE_ENV === 'development') {
 } else {
   // In production or build environments.
   if (!MONGODB_URI) {
-    // During the build process, env vars might not be available.
-    // We create a failing promise that will be caught by getDb if called during build.
-    clientPromise = Promise.reject(new Error('MONGODB_URI is not defined in the production environment.'));
+    // If the MONGODB_URI is missing and we're in a build process, we'll handle this in getDb.
+    // If it's missing at runtime, getDb will throw an error.
+    clientPromise = Promise.reject(new Error('MONGODB_URI is not defined in the environment.'));
   } else {
     client = new MongoClient(MONGODB_URI, {});
     clientPromise = client.connect();
@@ -46,15 +48,25 @@ export async function getDb(): Promise<Db> {
     // Return a proxy that will throw an error if any of its methods are called.
     return new Proxy({} as Db, {
         get(target, prop) {
+            // This error will only be thrown if the code *uses* a db method during build.
+            // Static analysis or tree-shaking should ideally prevent this.
             throw new Error(`Database operation '${String(prop)}' attempted during build without MONGODB_URI.`);
         }
     });
   }
-  
+
   // At runtime (or if MONGODB_URI is present during build), connect properly.
   if (!MONGODB_URI) {
-    throw new Error('MONGODB_URI is not defined at runtime.');
+    throw new Error('MONGODB_URI is not defined at runtime. Please set it in your hosting environment.');
   }
-  const mongoClient = await clientPromise;
-  return mongoClient.db(DB_NAME);
+
+  try {
+    const mongoClient = await clientPromise;
+    return mongoClient.db(DB_NAME);
+  } catch(e) {
+     // If the initial promise was rejected (e.g., no MONGODB_URI in production),
+     // this catch block will handle it and provide a clear runtime error.
+     console.error("Failed to connect to MongoDB:", e);
+     throw new Error("Could not connect to the database. Verify the MONGODB_URI is correct and the database is accessible.");
+  }
 }
