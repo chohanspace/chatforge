@@ -1,4 +1,3 @@
-
 // src/lib/mongodb.ts
 import { MongoClient, Db } from 'mongodb';
 import 'dotenv/config';
@@ -30,8 +29,8 @@ if (process.env.NODE_ENV === 'development') {
 } else {
   // In production or build environments.
   if (!MONGODB_URI) {
-    // If the MONGODB_URI is missing and we're in a build process, we'll handle this in getDb.
-    // If it's missing at runtime, getDb will throw an error.
+    // If the MONGODB_URI is missing, we'll handle this in getDb.
+    // In build, we'll use a mock. At runtime, we'll throw.
     clientPromise = Promise.reject(new Error('MONGODB_URI is not defined in the environment.'));
   } else {
     client = new MongoClient(MONGODB_URI, {});
@@ -40,24 +39,22 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export async function getDb(): Promise<Db> {
-  // If we are in a build process and the MONGODB_URI is not set,
-  // we return a mock/proxy that will throw an error only if actually used.
+  // If we are in any build process (CI=true or NODE_ENV is not development),
+  // and the MONGODB_URI is not set, we return a mock/proxy.
   // This allows Next.js to analyze page data without a real DB connection.
-  if (IS_BUILD && !MONGODB_URI) {
-    console.warn("MONGODB_URI not found during build. Using a mock DB object. This is normal for build servers.");
-    // Return a proxy that will throw an error if any of its methods are called.
+  if (process.env.NODE_ENV === 'production' && !MONGODB_URI && (IS_BUILD || typeof window === 'undefined')) {
+    console.warn("MONGODB_URI not found during build/prerender. Using a mock DB object. This is normal for build servers.");
+    // Return a proxy that will throw an error only if its methods are actually called.
     return new Proxy({} as Db, {
         get(target, prop) {
-            // This error will only be thrown if the code *uses* a db method during build.
-            // Static analysis or tree-shaking should ideally prevent this.
-            throw new Error(`Database operation '${String(prop)}' attempted during build without MONGODB_URI.`);
+            throw new Error(`Database operation '${String(prop)}' attempted during build without a MONGODB_URI.`);
         }
     });
   }
 
-  // At runtime (or if MONGODB_URI is present during build), connect properly.
+  // At runtime, if the URI is still missing, we must throw an error.
   if (!MONGODB_URI) {
-    throw new Error('MONGODB_URI is not defined at runtime. Please set it in your hosting environment.');
+    throw new Error('MONGODB_URI is not defined in the runtime environment. Please set it in your hosting environment.');
   }
 
   try {
